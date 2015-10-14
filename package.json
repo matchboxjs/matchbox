@@ -1,0 +1,30 @@
+{
+  "name": "matchbox",
+  "version": "1.0.0",
+  "description": "Strike anywhere!",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "matchbox-internals": "^0.2.0",
+    "matchbox-util": "^0.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matchboxjs/matchbox.git"
+  },
+  "keywords": [
+    "matchbox"
+  ],
+  "author": "tunderdomb",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/matchboxjs/matchbox/issues"
+  },
+  "homepage": "https://github.com/matchboxjs/matchbox"
+}
