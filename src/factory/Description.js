@@ -1,14 +1,19 @@
+var object = require("matchbox-util/object")
+
 module.exports = Description
 
-function Description( phase, describer ){
-  if( typeof describer != "function" && typeof phase == "function" ){
-    describer = phase
-    phase = null
-  }
-  this.phase = phase || "instance"
-  this.describer = describer
+function Description(description){
+  description = description || {}
+  this.phase = description.phase || "instance"
+  this.override = description.override || true
+  this.initialize = description.initialize || null
 }
 
-Description.prototype.describe = function( target, name, value ){
-  this.describer.call(target, name, value)
+Description.prototype.describe = function( part, target ){
+  var initialize = this.initialize
+  if (!initialize) return
+
+  object.in(part, function( name, value ){
+    initialize.call(target, name, value, part)
+  })
 }
