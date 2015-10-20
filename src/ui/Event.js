@@ -1,8 +1,8 @@
 var delegate = require("../dom/delegate")
 
-module.exports = EventDescription
+module.exports = Event
 
-function EventDescription (event) {
+function Event (event) {
   event = event || {}
   this.type = event.type
   this.target = event.target
@@ -13,9 +13,9 @@ function EventDescription (event) {
   if (event.transform ) this.transform = event.transform
 }
 
-EventDescription.prototype.transform = function () {}
+Event.prototype.transform = function () {}
 
-EventDescription.prototype.register = function (element, context) {
+Event.prototype.register = function (element, context) {
   if (this.target) {
     this.proxy = delegate({
       element: element,
@@ -29,10 +29,13 @@ EventDescription.prototype.register = function (element, context) {
     if (this.once) {
       element.addEventListener(this.type, this.handler, this.capture)
     }
+    else {
+      element.addEventListener(this.type, this.handler, this.capture)
+    }
   }
 }
 
-EventDescription.prototype.unRegister = function (element) {
+Event.prototype.unRegister = function (element) {
   if (this.proxy) {
     element.removeEventListener(this.type, this.proxy, this.capture)
   }

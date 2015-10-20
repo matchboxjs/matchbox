@@ -1,74 +1,106 @@
-var object = require("matchbox-util/object")
-var merge = require("matchbox-util/merge")
-
-var Description = require("./Description")
+var merge = require("matchbox-util/object/merge")
+var forIn = require("matchbox-util/object/in")
+var Extension = require("./Extension")
 
 module.exports = Blueprint
 
-function Blueprint( parts, parent ){
-  this.parts = merge(parts)
+function Blueprint( blocks, parent ){
+  var blueprint = this
 
-  this.transform("describe", function( description ){
-    return description instanceof description
-        ? description
-        : new Description(description)
+  this.blocks = merge(blocks)
+  this.parent = parent
+
+  this.localExtensions = this.get("extensions", {})
+
+  forIn(this.localExtensions, function( name, extension ){
+    //if (parent && !!~parent.extensionNames.indexOf(name)) {
+    //  throw new Error("Description override is not supported")
+    //}
+
+    extension = extension instanceof Extension
+        ? extension
+        : new Extension(extension)
+    blueprint.localExtensions[name] = extension
+    extension.name = name
   })
 
+  this.globalExtensions = this.localExtensions
+
   if (parent) {
-    //this.inheritPart("describe", parent)
-    this.digestDescriptions(function (partName, description) {
-      this.inheritPart(partName, parent)
+    this.globalExtensions = merge(parent.globalExtensions, this.localExtensions)
+    forIn(this.globalExtensions, function (name, extension) {
+      if (extension.inherit) {
+        blueprint.blocks[name] = merge(parent.get(name), blueprint.get(name))
+      }
     })
   }
 }
-Blueprint.prototype.describe = function( phase, target, top ){
-  this.digestDescriptions(function( partName, description ){
-    if( description.phase != phase ) return
 
-    var part = top && top.has(partName)
-        ? top.get(partName)
-        : this.get(partName)
-    if( !part ) return
-
-    description.describe(part, target)
+Blueprint.prototype.buildPrototype = function( prototype, top ){
+  this.build("prototype", this.globalExtensions, top, function (name, extension, block) {
+    forIn(block, function( name, value ){
+      extension.initialize(prototype, name, value)
+    })
   })
 }
 
-Blueprint.prototype.digestDescriptions = function( fn ){
-  this.digest("describe", fn.bind(this), true)
+Blueprint.prototype.buildCache = function( prototype, top ){
+  this.build("cache", this.globalExtensions, top, function (name, extension, block) {
+    if (!prototype.hasOwnProperty(name)) {
+      prototype[name] = {}
+    }
+
+    var cache = prototype[name]
+    var initialize = extension.initialize
+
+    forIn(block, function( name, value ){
+      cache[name] = initialize
+          ? initialize(prototype, name, value)
+          : value
+    })
+  })
 }
 
-Blueprint.prototype.inheritPart = function( partName, parent ){
-  this.parts[partName] = merge(parent.get(partName), this.get(partName))
+Blueprint.prototype.buildInstance = function( instance, top ){
+  this.build("instance", this.globalExtensions, top, function (name, extension, block) {
+    forIn(block, function( name, value ){
+      extension.initialize(instance, name, value)
+    })
+  })
 }
 
-Blueprint.prototype.has = function( partName ){
-  return this.parts.hasOwnProperty(partName) && this.parts[partName] != null
-}
-Blueprint.prototype.get = function( partName, defaultValue ){
-  var parts = this.parts
-  if( this.has(partName) ){
-    return parts[partName]
-  }
-  else return defaultValue
+Blueprint.prototype.build = function( type, extensions, top, build ){
+  var blueprint = top || this
+  //var base = this
+  forIn(extensions, function (name, extension) {
+    if( extension.type != type ) return
+    //var blueprint = extension.inherit ? top : base
+    var block = blueprint.get(name)
+    if( !block ) return
+
+    build(name, extension, block)
+  })
 }
 
-Blueprint.prototype.digest = function( partName, define, loop ){
-  if (this.has(partName)) {
-    var part = this.get(partName)
+Blueprint.prototype.digest = function( name, fn, loop ){
+  if (this.has(name)) {
+    var block = this.get(name)
     if (loop) {
-      object.in(part, define.bind(this))
+      forIn(block, fn)
     }
     else {
-      define.call(this, part)
+      fn.call(this, block)
     }
   }
 }
 
-Blueprint.prototype.transform = function( property, transform ){
-  var part = this.get(property)
-  if( part == null ) return
-  object.in(part, function( name, value ){
-    part[name] = transform(value, name)
-  })
+Blueprint.prototype.has = function( name ){
+  return this.blocks.hasOwnProperty(name) && this.blocks[name] != null
+}
+
+Blueprint.prototype.get = function( name, defaultValue ){
+  if( this.has(name) ){
+    return this.blocks[name]
+  }
+  else return defaultValue
 }

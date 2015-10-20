@@ -2,17 +2,24 @@ module.exports = Selector
 
 Selector.DEFAULT_NEST_SEPARATOR = ":"
 
-function Selector (attribute, value, operator, extra, element) {
-  this.attribute = attribute
-  this.value = value || null
-  this.operator = operator || "="
-  this.extra = extra || null
+function Selector (selector) {
+  selector = selector || {}
+  this.attribute = selector.attribute
+  this.value = selector.value || null
+  this.operator = selector.operator || "="
+  this.extra = selector.extra || null
 
-  this.element = element || null
+  this.element = selector.element || null
+
+  this.Constructor = selector.Constructor || null
+  this.instantiate = selector.instantiate || null
+  this.multiple = selector.multiple != null ? !!selector.multiple : false
+
+  this.matcher = selector.matcher || null
 }
 
 Selector.prototype.clone = function () {
-  return new Selector(this.attribute, this.value, this.operator, this.extra, this.element)
+  return new Selector(this)
 }
 
 Selector.prototype.combine = function (selector) {
@@ -35,9 +42,17 @@ Selector.prototype.contains = function (value) {
   return s
 }
 
-Selector.prototype.nest = function (sub, separator) {
+Selector.prototype.prefix = function (pre, separator) {
   var s = this.clone()
-  s.value += (separator||Selector.DEFAULT_NEST_SEPARATOR) + sub
+  var sep = s.value ? separator || Selector.DEFAULT_NEST_SEPARATOR : ""
+  s.value = pre + sep + s.value
+  return s
+}
+
+Selector.prototype.nest = function (post, separator) {
+  var s = this.clone()
+  var sep = s.value ? separator || Selector.DEFAULT_NEST_SEPARATOR : ""
+  s.value += sep + post
   return s
 }
 
@@ -62,18 +77,28 @@ Selector.prototype.node = function (transform) {
 }
 
 Selector.prototype.nodeList = function (transform) {
-  return this.select(this.element, transform)
+  return this.selectAll(this.element, transform)
 }
 
-Selector.prototype.matches = function (target, root) {
-  if (root) {
-    return root === target || root.contains(target)
+Selector.prototype.construct = function () {
+  var Constructor = this.Constructor
+  var instantiate = this.instantiate || function (element) {
+    return new Constructor(element)
   }
-  return target.matches(this.toString())
+  if (this.multiple) {
+    return this.nodeList(function (elements) {
+      return [].map.call(elements, instantiate)
+    })
+  }
+  else {
+    return this.node(instantiate)
+  }
 }
 
 Selector.prototype.toString = function () {
-  var value = this.value && '"' + (this.value == true ? "" : this.value) + '"'
+  var value = this.value != null
+      ? '"' + (this.value == true ? "" : this.value) + '"'
+      : ""
   var operator = value ? this.operator || "=" : ""
   var extra = this.extra || ""
   return "[" + this.attribute + operator + value + "]" + extra

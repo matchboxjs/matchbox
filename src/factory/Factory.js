@@ -1,3 +1,4 @@
+var define = require("matchbox-util/object/define")
 var Blueprint = require("./Blueprint")
 var extend = require("./extend")
 var augment = require("./augment")
@@ -13,52 +14,57 @@ function Factory( blueprint, parent ){
     blueprint = new Blueprint(blueprint, parent ? parent.blueprint : null)
   }
 
-  //function Core(){
-  //  var instance = this
-  //  var args = arguments
-  //  var Constructor = factory.Constructor
-  //  //var Super = factory.Super
-  //
-  //  //factory.buildUp(function (ancestor) {
-  //  //  var SuperConstructor = ancestor.Constructor
-  //  //  ancestor.blueprint.describe("instance", instance, blueprint)
-  //  //  SuperConstructor && SuperConstructor.apply(instance, args)
-  //  //})
-  //  //Super && Super.apply(instance, args)
-  //  blueprint.describe("instance", instance)
-  //  Constructor && Constructor.apply(instance, args)
-  //}
-  //
-  //internals(Core)
-  //Core.extend = function( superBlueprint ){
-  //  superBlueprint = superBlueprint || {}
-  //  superBlueprint["inherit"] = Core
-  //  return new Factory(superBlueprint, factory).assemble()
-  //}
-  //Core.initialize = function (instance, args) {
-  //  blueprint.describe("instance", instance)
-  //}
-
   this.blueprint = blueprint
-  //this.Core = Core
   this.parent = parent || null
   this.ancestors = parent ? parent.ancestors.concat([parent]) : []
   this.root = this.ancestors[0] || null
   this.Super = blueprint.get("inherit", null)
-  this.Constructor = blueprint.get("constructor", null)
+  this.Constructor = blueprint.get("constructor", function () {
+    if (this.constructor.Super) {
+      this.constructor.Super.apply(this, arguments)
+    }
+    this.constructor.initialize(this)
+  })
   this.Constructor.extend = function (superBlueprint) {
     superBlueprint = superBlueprint || {}
     superBlueprint["inherit"] = factory.Constructor
-    return new Factory(superBlueprint, factory).assemble()
+    var superFactory = new Factory(superBlueprint, factory)
+    return superFactory.assemble()
   }
+
+  this.industry.push(this)
 }
 
 Factory.prototype.assemble = function(){
+  var factory = this
   var blueprint = this.blueprint
   var Constructor = this.Constructor
 
-  blueprint.digest("inherit", function (Base) {
-    inherit(Constructor, Base)
+  Constructor.Super = this.Super
+  Constructor.blueprint = blueprint
+
+  this.digest()
+
+  blueprint.buildPrototype(Constructor.prototype, blueprint)
+  blueprint.buildCache(Constructor.prototype, blueprint)
+
+  Constructor.initialize = function (instance) {
+    //var top = factory.findFactory(instance.constructor).blueprint
+    var top = instance.constructor.blueprint
+    blueprint.buildInstance(instance, top)
+  }
+
+  return Constructor
+}
+
+Factory.prototype.digest = function(  ){
+  var factory = this
+  var blueprint = this.blueprint
+  var Constructor = this.Constructor
+  var proto = Constructor.prototype
+
+  blueprint.digest("inherit", function (Super) {
+    inherit(Constructor, Super)
   })
   blueprint.digest("include", function (includes) {
     include(Constructor, includes)
@@ -75,43 +81,37 @@ Factory.prototype.assemble = function(){
   blueprint.digest("accessor", function( name, access ){
     if( !access ) return
     if( typeof access == "function" ){
-      Constructor.get(name, access)
+      define.getter(proto, name, access)
     }
     else if( typeof access["get"] == "function" && typeof access["set"] == "function" ){
-      Constructor.accessor(name, access["get"], access["set"])
+      define.accessor(proto, name, access["get"], access["set"])
     }
     else if( typeof access["get"] == "function" ){
-      Constructor.get(name, access["get"])
+      define.getter(proto, name, access["get"])
     }
     else if( typeof access["set"] == "function" ){
-      Constructor.set(name, access["set"])
+      define.getter(proto, name, access["set"])
     }
   }, true)
-
-  blueprint.digestDescriptions(function (partName) {
-    if (blueprint.has(partName)) {
-      Constructor[partName] = blueprint.get(partName)
-    }
-  })
-
-  //this.traverse(function( ancestor ){
-  //  ancestor.blueprint.describe("prototype", Core, blueprint)
+  //blueprint.digest("include", function (includes) {
+  //  if (!Array.isArray(includes)) {
+  //    includes = [includes]
+  //  }
+  //  includes.forEach(function (include) {
+  //    var foreign = factory.findFactory(include)
+  //    if (foreign) {
+  //      foreign.blueprint.build("prototype", Constructor.prototype, blueprint)
+  //    }
+  //  })
   //})
-
-  blueprint.describe("prototype", Constructor.prototype)
-
-  Constructor.Super = this.Super
-  Constructor.prototype.Super = this.Super
-  Constructor.prototype.super = function () {
-    Constructor.Super.apply(this, arguments)
-  }
-  Constructor.prototype.initialize = function () {
-    blueprint.describe("instance", this)
-  }
-
-  return this.Core
 }
 
-Factory.prototype.buildUp = function( traverse ){
-  this.ancestors.forEach(traverse, this)
+Factory.prototype.industry = []
+
+Factory.prototype.findFactory = function( Constructor ){
+  var ret = null
+  this.industry.some(function (factory) {
+    return factory.Constructor === Constructor && (ret = factory)
+  })
+  return ret
 }

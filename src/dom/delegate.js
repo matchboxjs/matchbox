@@ -112,6 +112,9 @@ function matchCapturePath( selector, el, e, transform, context ){
  * */
 function findParent( selector, el, e ){
   var target = e.target
+  if (selector instanceof Selector) {
+    selector = selector.toString()
+  }
   switch( typeof selector ){
     case "string":
       while( target && target != el ){
@@ -125,8 +128,6 @@ function findParent( selector, el, e ){
         target = target.parentNode
       }
       break
-    case "object":
-      return selector instanceof Selector && selector.matches(target, el)
     default:
       return null
   }
