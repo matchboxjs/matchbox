@@ -538,7 +538,6 @@ function Blueprint( blocks, parent ){
 
   this.blocks = merge(blocks)
   this.parent = parent
-  //this.extensions = this.get("extensions", {})
 
   this.localExtensions = this.get("extensions", {})
 
@@ -567,9 +566,6 @@ function Blueprint( blocks, parent ){
 }
 
 Blueprint.prototype.buildPrototype = function( prototype, top ){
-  //if (this.parent) {
-  //  this.parent.buildPrototype(prototype, top)
-  //}
   this.build("prototype", this.globalExtensions, top, function (name, extension, block) {
     forIn(block, function( name, value ){
       extension.initialize(prototype, name, value)
@@ -578,17 +574,10 @@ Blueprint.prototype.buildPrototype = function( prototype, top ){
 }
 
 Blueprint.prototype.buildCache = function( prototype, top ){
-  //if (this.parent) {
-  //  this.parent.buildCache(prototype, top)
-  //}
   this.build("cache", this.globalExtensions, top, function (name, extension, block) {
     if (!prototype.hasOwnProperty(name)) {
       prototype[name] = {}
     }
-    //if (prototype.constructor.Super) {
-    //  var superCache = prototype.constructor.Super.prototype[name]
-    //  prototype[name] = merge(prototype[name], superCache)
-    //}
 
     var cache = prototype[name]
     var initialize = extension.initialize
@@ -602,7 +591,7 @@ Blueprint.prototype.buildCache = function( prototype, top ){
 }
 
 Blueprint.prototype.buildInstance = function( instance, top ){
-  this.build("instance", this.globalExtensions, top, function (name, extension, block) {
+  this.build("instance", this.localExtensions, top, function (name, extension, block) {
     forIn(block, function( name, value ){
       extension.initialize(instance, name, value)
     })
@@ -621,18 +610,6 @@ Blueprint.prototype.build = function( type, extensions, top, build ){
     build(name, extension, block)
   })
 }
-
-//Blueprint.prototype.build = function( type, extensions top, context, ){
-//  var blueprint = top || this
-//  forIn(extensions, function (name, extension) {
-//    if( extension.type != type ) return
-//
-//    var block = blueprint.get(name)
-//    if( !block ) return
-//
-//    extension.use(context, block)
-//  })
-//}
 
 Blueprint.prototype.digest = function( name, fn, loop ){
   if (this.has(name)) {
@@ -1144,9 +1121,7 @@ var View = module.exports = factory({
   },
 
   layouts: {
-    'default': function () {
-
-    }
+    'default': function () {}
   },
   events: {},
   attributes: {
@@ -1186,13 +1161,13 @@ var View = module.exports = factory({
       var layoutHandler = this.layouts[layout]
       if (!layoutHandler) return Promise.reject(new Error("Missing layout handler: " + layout))
 
-      var role = this
-      var previous = role.currentLayout
+      var view = this
+      var previous = view.currentLayout
       return Promise.resolve(previous).then(function () {
-        return layoutHandler.call(role, previous)
+        return layoutHandler.call(view, previous)
       }).then(function () {
-        role.currentLayout = layout
-        role.onLayoutChange(layout, previous)
+        view.currentLayout = layout
+        view.onLayoutChange(layout, previous)
       })
     },
     dispatch: function (type, detail, def) {

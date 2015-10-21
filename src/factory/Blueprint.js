@@ -62,7 +62,7 @@ Blueprint.prototype.buildCache = function( prototype, top ){
 }
 
 Blueprint.prototype.buildInstance = function( instance, top ){
-  this.build("instance", this.globalExtensions, top, function (name, extension, block) {
+  this.build("instance", this.localExtensions, top, function (name, extension, block) {
     forIn(block, function( name, value ){
       extension.initialize(instance, name, value)
     })
