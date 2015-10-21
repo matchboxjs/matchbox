@@ -8,6 +8,9 @@ var InstanceExtension = require("./InstanceExtension")
 var Screen = module.exports = View.extend({
   extensions: {
     regions: new InstanceExtension(function (screen, name, selector) {
+      if (typeof selector == "function") {
+        selector = {Constructor: selector}
+      }
       selector = new Selector(defaults(selector, {
         attribute: "data-region",
         operator: "=",

@@ -8,7 +8,7 @@ function Attribute (def) {
   this.name = def.name || ""
   this.onchange = def.onchange || null
   this.default = null
-  this.hasDefault = false
+  this.useDefaultOnGet = false
 
   if (Attribute.isPrimitive(def)) {
     this.default = def
@@ -65,7 +65,7 @@ Attribute.prototype.defineProperty = function (obj, name, getContext) {
   Object.defineProperty(obj, name, {
     get: function () {
       var context = typeof getContext == "function" ? getContext(this) : getContext
-      attribute.get(context)
+      return attribute.get(context, attribute.useDefaultOnGet)
     },
     set: function (value) {
       var context = typeof getContext == "function" ? getContext(this) : getContext

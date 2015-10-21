@@ -6,6 +6,7 @@ module.exports = Boolean
 function Boolean (def) {
   Attribute.call(this, def)
   this.type = "boolean"
+  this.useDefaultOnGet = true
 }
 
 inherit(Boolean, Attribute)

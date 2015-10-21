@@ -165,7 +165,7 @@ function Attribute (def) {
   this.name = def.name || ""
   this.onchange = def.onchange || null
   this.default = null
-  this.hasDefault = false
+  this.useDefaultOnGet = false
 
   if (Attribute.isPrimitive(def)) {
     this.default = def
@@ -222,7 +222,7 @@ Attribute.prototype.defineProperty = function (obj, name, getContext) {
   Object.defineProperty(obj, name, {
     get: function () {
       var context = typeof getContext == "function" ? getContext(this) : getContext
-      attribute.get(context)
+      return attribute.get(context, attribute.useDefaultOnGet)
     },
     set: function (value) {
       var context = typeof getContext == "function" ? getContext(this) : getContext
@@ -270,6 +270,7 @@ module.exports = Boolean
 function Boolean (def) {
   Attribute.call(this, def)
   this.type = "boolean"
+  this.useDefaultOnGet = true
 }
 
 inherit(Boolean, Attribute)
@@ -1277,6 +1278,9 @@ var InstanceExtension = require("./InstanceExtension")
 var Screen = module.exports = View.extend({
   extensions: {
     regions: new InstanceExtension(function (screen, name, selector) {
+      if (typeof selector == "function") {
+        selector = {Constructor: selector}
+      }
       selector = new Selector(defaults(selector, {
         attribute: "data-region",
         operator: "=",
@@ -1342,13 +1346,9 @@ var View = module.exports = factory({
     })
   },
 
-  layouts: {
-    'default': function () {}
-  },
+  layouts: {},
   events: {},
-  attributes: {
-    dummy: false
-  },
+  attributes: {},
 
   constructor: function View( element ){
     this.currentLayout = ""
