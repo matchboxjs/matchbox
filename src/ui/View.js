@@ -36,13 +36,9 @@ var View = module.exports = factory({
     })
   },
 
-  layouts: {
-    'default': function () {}
-  },
+  layouts: {},
   events: {},
-  attributes: {
-    dummy: false
-  },
+  attributes: {},
 
   constructor: function View( element ){
     this.currentLayout = ""
