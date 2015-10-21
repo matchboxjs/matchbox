@@ -4,37 +4,9 @@ var matchbox = module.exports = {}
 matchbox.factory = require("./src/factory")
 matchbox.ui = require("./src/ui")
 matchbox.dom = require("./src/dom")
+matchbox.attributes = require("./src/attributes")
 
-},{"./src/dom":14,"./src/factory":21,"./src/ui":31}],2:[function(require,module,exports){
-'use strict';
-module.exports = function () {
-	var str = [].map.call(arguments, function (str) {
-		return str.trim();
-	}).filter(function (str) {
-		return str.length;
-	}).join('-');
-
-	if (!str.length) {
-		return '';
-	}
-
-	if (str.length === 1 || !(/[_.\- ]+/).test(str) ) {
-		if (str[0] === str[0].toLowerCase() && str.slice(1) !== str.slice(1).toLowerCase()) {
-			return str;
-		}
-
-		return str.toLowerCase();
-	}
-
-	return str
-	.replace(/^[_.\- ]+/, '')
-	.toLowerCase()
-	.replace(/[_.\- ]+(\w|$)/g, function (m, p1) {
-		return p1.toUpperCase();
-	});
-};
-
-},{}],3:[function(require,module,exports){
+},{"./src/attributes":14,"./src/dom":19,"./src/factory":26,"./src/ui":36}],2:[function(require,module,exports){
 module.exports = Descriptor
 
 var _writable = "_writable"
@@ -126,14 +98,14 @@ Descriptor.prototype = {
   }
 }
 
-},{}],4:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 var extend = require("./extend")
 
 module.exports = function (obj) {
   return extend({}, obj)
 }
 
-},{"./extend":7}],5:[function(require,module,exports){
+},{"./extend":6}],4:[function(require,module,exports){
 var copy = require("./copy")
 
 module.exports = function defaults (options, defaults) {
@@ -152,12 +124,12 @@ module.exports = function defaults (options, defaults) {
   return obj
 }
 
-},{"./copy":4}],6:[function(require,module,exports){
+},{"./copy":3}],5:[function(require,module,exports){
 var Descriptor = require("./Descriptor")
 
 module.exports = new Descriptor()
 
-},{"./Descriptor":3}],7:[function(require,module,exports){
+},{"./Descriptor":2}],6:[function(require,module,exports){
 module.exports = function extend( obj, extension ){
   for( var name in extension ){
     if( extension.hasOwnProperty(name) ) obj[name] = extension[name]
@@ -165,7 +137,7 @@ module.exports = function extend( obj, extension ){
   return obj
 }
 
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 module.exports = function( obj, callback ){
   for( var prop in obj ){
     if( obj.hasOwnProperty(prop) ){
@@ -175,46 +147,220 @@ module.exports = function( obj, callback ){
   return obj
 }
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 var extend = require("./extend")
 
 module.exports = function( obj, extension ){
   return extend(extend({}, obj), extension)
 }
 
-},{"./extend":7}],10:[function(require,module,exports){
+},{"./extend":6}],9:[function(require,module,exports){
+module.exports = Attribute
+
+function Attribute (def) {
+  if (typeof def == "undefined") {
+    def = {}
+  }
+  this.type = def.type || ""
+  this.name = def.name || ""
+  this.onchange = def.onchange || null
+  this.default = null
+  this.hasDefault = false
+
+  if (Attribute.isPrimitive(def)) {
+    this.default = def
+    this.hasDefault = true
+  }
+  else if (def) {
+    this.default = def.default
+    this.hasDefault = typeof this.default != "undefined"
+  }
+}
+
+Attribute.getType = function (def) {
+  if (typeof def == "undefined") {
+    return "string"
+  }
+  if (Attribute.isPrimitive(def)) {
+    switch (typeof def) {
+      case "number":
+        // note: it fails for 1.0
+        if (def === +def && def !== (def | 0)) {
+          return "float"
+        }
+    }
+    return typeof def
+  }
+  else {
+    return typeof def.type
+  }
+}
+
+Attribute.isPrimitive = function (value) {
+  switch( typeof value ) {
+    case "boolean":
+    case "number":
+    case "string":
+      return true
+    default:
+      return false
+  }
+}
+
+Attribute.prototype.parseValue = function (value) {
+  return value
+}
+Attribute.prototype.stringifyValue = function (value) {
+  return "" + value
+}
+Attribute.prototype.shouldRemove = function( value ){
+  return value == null
+}
+
+Attribute.prototype.defineProperty = function (obj, name, getContext) {
+  var attribute = this
+  Object.defineProperty(obj, name, {
+    get: function () {
+      var context = typeof getContext == "function" ? getContext(this) : getContext
+      attribute.get(context)
+    },
+    set: function (value) {
+      var context = typeof getContext == "function" ? getContext(this) : getContext
+      attribute.set(context, value)
+    }
+  })
+}
+Attribute.prototype.getFromContext = function (context, name) {}
+Attribute.prototype.setOnContext = function (context, name, value) {}
+Attribute.prototype.hasOnContext = function (context, name) {}
+Attribute.prototype.removeFromContext = function (context, name) {}
+
+Attribute.prototype.get = function( context, useDefault ){
+  var value = this.getFromContext(context, this.name)
+  if( value == null && useDefault == true ){
+    return this.default
+  }
+
+  return this.parseValue(value)
+}
+
+Attribute.prototype.set = function( context, value, callOnchange ){
+  var previousValue = this.get(context, false)
+  if( previousValue === value ){
+    return
+  }
+
+  if( this.shouldRemove(value) ){
+    this.removeFromContext(context, this.name)
+  }
+  else {
+    var newValue = this.stringifyValue(value)
+    this.setOnContext(context, this.name, newValue)
+  }
+
+  this.onchange && callOnchange != false && this.onchange.call(context, previousValue, value)
+}
+
+},{}],10:[function(require,module,exports){
 var inherit = require("../factory/inherit")
-var Attribute = require("../util/Attribute")
+var Attribute = require("./Attribute")
 
-module.exports = DomAttribute
+module.exports = Boolean
 
-function DomAttribute (def) {
+function Boolean (def) {
   Attribute.call(this, def)
-  def = def || {}
-  this.useData = def.useData || false
+  this.type = "boolean"
 }
 
-inherit(DomAttribute, Attribute)
+inherit(Boolean, Attribute)
 
-
-DomAttribute.prototype.getAttribute = function( element, name ){
-  name = this.useData ? "data-" + name : name
-  return element.getAttribute(name)
+Boolean.prototype.stringifyValue = function(){
+  return ""
 }
-DomAttribute.prototype.setAttribute = function( element, name, value ){
-  name = this.useData ? "data-" + name : name
-  return element.setAttribute(name, value)
-}
-DomAttribute.prototype.hasAttribute = function( element, name ){
-  name = this.useData ? "data-" + name : name
-  return element.hasAttribute(name)
-}
-DomAttribute.prototype.removeAttribute = function( element, name ){
-  name = this.useData ? "data-" + name : name
-  return element.removeAttribute(name)
+Boolean.prototype.shouldRemove = function( value ){
+  return value == false
 }
 
-},{"../factory/inherit":22,"../util/Attribute":32}],11:[function(require,module,exports){
+},{"../factory/inherit":27,"./Attribute":9}],11:[function(require,module,exports){
+var inherit = require("../factory/inherit")
+var Attribute = require("./Attribute")
+
+module.exports = Float
+
+function Float (def) {
+  Attribute.call(this, def)
+  this.type = "float"
+}
+
+inherit(Float, Attribute)
+
+Float.prototype.stringifyValue = function(value){
+  return value == null ? null : parseInt(value, 10)
+}
+
+},{"../factory/inherit":27,"./Attribute":9}],12:[function(require,module,exports){
+var inherit = require("../factory/inherit")
+var Attribute = require("./Attribute")
+
+module.exports = Number
+
+function Number (def) {
+  Attribute.call(this, def)
+  this.type = "number"
+}
+
+inherit(Number, Attribute)
+
+Number.prototype.stringifyValue = function(value){
+  return value == null ? null : parseFloat(value)
+}
+
+},{"../factory/inherit":27,"./Attribute":9}],13:[function(require,module,exports){
+var inherit = require("../factory/inherit")
+var Attribute = require("./Attribute")
+
+module.exports = String
+
+function String (def) {
+  Attribute.call(this, def)
+  this.type = "string"
+}
+
+inherit(String, Attribute)
+
+String.prototype.stringifyValue = function(value){
+  return value == null ? null : value ? "" + value : ""
+}
+
+},{"../factory/inherit":27,"./Attribute":9}],14:[function(require,module,exports){
+var Attribute = require("./Attribute")
+var String = require("./String")
+var Boolean = require("./Boolean")
+var Number = require("./Number")
+var Float = require("./Float")
+
+var attributes = module.exports = {}
+
+attributes.create = function (def) {
+  switch (Attribute.getType(def)) {
+    case "string":
+      return new String(def)
+    case "boolean":
+      return new Boolean(def)
+    case "number":
+      return new Number(def)
+    case "float":
+      return new Float(def)
+  }
+}
+
+attributes.Attribute = Attribute
+attributes.String = String
+attributes.Boolean = Boolean
+attributes.Number = Number
+attributes.Float = Float
+
+},{"./Attribute":9,"./Boolean":10,"./Float":11,"./Number":12,"./String":13}],15:[function(require,module,exports){
 module.exports = Fragment
 
 function Fragment (fragment) {
@@ -276,7 +422,7 @@ Fragment.prototype.render = function (context, options) {
   })
 }
 
-},{}],12:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 module.exports = Selector
 
 Selector.DEFAULT_NEST_SEPARATOR = ":"
@@ -383,7 +529,85 @@ Selector.prototype.toString = function () {
   return "[" + this.attribute + operator + value + "]" + extra
 }
 
-},{}],13:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
+var inherit = require("../factory/inherit")
+var include = require("../factory/include")
+var Attribute = require("../attributes/Attribute")
+var String = require("../attributes/String")
+var Boolean = require("../attributes/Boolean")
+var Number = require("../attributes/Number")
+var Float = require("../attributes/Float")
+
+var domAttributes = module.exports = {}
+
+domAttributes.create = function (def) {
+  switch (Attribute.getType(def)) {
+    case "string":
+      return new DomString(def)
+    case "boolean":
+      return new DomBoolean(def)
+    case "number":
+      return new DomNumber(def)
+    case "float":
+      return new DomFloat(def)
+  }
+}
+
+function DomAttribute (def) {
+  def = def || {}
+  this.prefix = def.prefix == null ? "data-" : def.prefix
+}
+
+DomAttribute.prototype.getFromContext = function( element, name ){
+  name = this.prefix ? this.prefix + name : name
+  return element.getAttribute(name)
+}
+DomAttribute.prototype.setOnContext = function( element, name, value ){
+  name = this.prefix ? this.prefix + name : name
+  return element.setAttribute(name, value)
+}
+DomAttribute.prototype.hasOnContext = function( element, name ){
+  name = this.prefix ? this.prefix + name : name
+  return element.hasAttribute(name)
+}
+DomAttribute.prototype.removeFromContext = function( element, name ){
+  name = this.prefix ? this.prefix + name : name
+  return element.removeAttribute(name)
+}
+
+function DomString (def) {
+  String.call(this, def)
+  DomAttribute.call(this, def)
+}
+domAttributes.String = DomString
+inherit(DomString, String)
+include(DomString, DomAttribute)
+
+function DomBoolean (def) {
+  Boolean.call(this, def)
+  DomAttribute.call(this, def)
+}
+domAttributes.Boolean = DomBoolean
+inherit(DomBoolean, Boolean)
+include(DomBoolean, DomAttribute)
+
+function DomNumber (def) {
+  Number.call(this, def)
+  DomAttribute.call(this, def)
+}
+domAttributes.Number = DomNumber
+inherit(DomNumber, Number)
+include(DomNumber, DomAttribute)
+
+function DomFloat (def) {
+  Float.call(this, def)
+  DomAttribute.call(this, def)
+}
+domAttributes.Float = DomFloat
+inherit(DomFloat, Float)
+include(DomFloat, DomAttribute)
+
+},{"../attributes/Attribute":9,"../attributes/Boolean":10,"../attributes/Float":11,"../attributes/Number":12,"../attributes/String":13,"../factory/include":25,"../factory/inherit":27}],18:[function(require,module,exports){
 var Selector = require("./Selector")
 
 /**
@@ -520,13 +744,13 @@ function findParent( selector, el, e ){
   return null
 }
 
-},{"./Selector":12}],14:[function(require,module,exports){
+},{"./Selector":16}],19:[function(require,module,exports){
 var dom = module.exports = {}
 
 dom.delegate = require("./delegate")
 dom.Selector = require("./Selector")
 
-},{"./Selector":12,"./delegate":13}],15:[function(require,module,exports){
+},{"./Selector":16,"./delegate":18}],20:[function(require,module,exports){
 var merge = require("matchbox-util/object/merge")
 var forIn = require("matchbox-util/object/in")
 var Extension = require("./Extension")
@@ -634,7 +858,7 @@ Blueprint.prototype.get = function( name, defaultValue ){
   else return defaultValue
 }
 
-},{"./Extension":16,"matchbox-util/object/in":8,"matchbox-util/object/merge":9}],16:[function(require,module,exports){
+},{"./Extension":21,"matchbox-util/object/in":7,"matchbox-util/object/merge":8}],21:[function(require,module,exports){
 module.exports = Extension
 
 function Extension(extension){
@@ -647,7 +871,7 @@ function Extension(extension){
 
 //Extension.prototype.use = function( context, block ){}
 
-},{}],17:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var define = require("matchbox-util/object/define")
 var Blueprint = require("./Blueprint")
 var extend = require("./extend")
@@ -766,7 +990,7 @@ Factory.prototype.findFactory = function( Constructor ){
   return ret
 }
 
-},{"./Blueprint":15,"./augment":18,"./extend":19,"./include":20,"./inherit":22,"matchbox-util/object/define":6}],18:[function(require,module,exports){
+},{"./Blueprint":20,"./augment":23,"./extend":24,"./include":25,"./inherit":27,"matchbox-util/object/define":5}],23:[function(require,module,exports){
 module.exports = function augment (Class, mixin) {
   if (Array.isArray(mixin)) {
     mixin.forEach(function (mixin) {
@@ -784,7 +1008,7 @@ module.exports = function augment (Class, mixin) {
   return Class
 }
 
-},{}],19:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports = function extend (Class, prototype) {
   Object.getOwnPropertyNames(prototype).forEach(function (name) {
     if (name !== "constructor" ) {
@@ -796,7 +1020,7 @@ module.exports = function extend (Class, prototype) {
   return Class
 }
 
-},{}],20:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 var extend = require("./extend")
 
 module.exports = function include (Class, Other) {
@@ -822,14 +1046,14 @@ module.exports = function include (Class, Other) {
   return Class
 }
 
-},{"./extend":19}],21:[function(require,module,exports){
+},{"./extend":24}],26:[function(require,module,exports){
 var Factory = require("./Factory")
 
 module.exports = function factory( blueprint ){
   return new Factory(blueprint).assemble()
 }
 
-},{"./Factory":17}],22:[function(require,module,exports){
+},{"./Factory":22}],27:[function(require,module,exports){
 module.exports = function inherit (Class, Base) {
   Class.prototype = Object.create(Base.prototype)
   Class.prototype.constructor = Class
@@ -837,7 +1061,7 @@ module.exports = function inherit (Class, Base) {
   return Class
 }
 
-},{}],23:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 var forIn = require("matchbox-util/object/in")
 var copy = require("matchbox-util/object/copy")
 var inherit = require("./../factory/inherit")
@@ -873,7 +1097,7 @@ inherit(CacheExtension, Extension)
 //  })
 //}
 
-},{"./../factory/Extension":16,"./../factory/inherit":22,"matchbox-util/object/copy":4,"matchbox-util/object/in":8}],24:[function(require,module,exports){
+},{"./../factory/Extension":21,"./../factory/inherit":27,"matchbox-util/object/copy":3,"matchbox-util/object/in":7}],29:[function(require,module,exports){
 var defaults = require("matchbox-util/object/defaults")
 var View = require("./View")
 var Selector = require("../dom/Selector")
@@ -913,7 +1137,7 @@ var Element = module.exports = View.extend({
   }
 })
 
-},{"../dom/Fragment":11,"../dom/Selector":12,"./CacheExtension":23,"./InstanceExtension":26,"./View":30,"matchbox-util/object/defaults":5}],25:[function(require,module,exports){
+},{"../dom/Fragment":15,"../dom/Selector":16,"./CacheExtension":28,"./InstanceExtension":31,"./View":35,"matchbox-util/object/defaults":4}],30:[function(require,module,exports){
 var delegate = require("../dom/delegate")
 
 module.exports = Event
@@ -960,7 +1184,7 @@ Event.prototype.unRegister = function (element) {
   }
 }
 
-},{"../dom/delegate":13}],26:[function(require,module,exports){
+},{"../dom/delegate":18}],31:[function(require,module,exports){
 var forIn = require("matchbox-util/object/in")
 var inherit = require("./../factory/inherit")
 var Extension = require("./../factory/Extension")
@@ -984,7 +1208,7 @@ inherit(InstanceExtension, Extension)
 //  })
 //}
 
-},{"./../factory/Extension":16,"./../factory/inherit":22,"matchbox-util/object/in":8}],27:[function(require,module,exports){
+},{"./../factory/Extension":21,"./../factory/inherit":27,"matchbox-util/object/in":7}],32:[function(require,module,exports){
 var forIn = require("matchbox-util/object/in")
 var inherit = require("./../factory/inherit")
 var Extension = require("./../factory/Extension")
@@ -1008,7 +1232,7 @@ inherit(PrototypeExtension, Extension)
 //  })
 //}
 
-},{"./../factory/Extension":16,"./../factory/inherit":22,"matchbox-util/object/in":8}],28:[function(require,module,exports){
+},{"./../factory/Extension":21,"./../factory/inherit":27,"matchbox-util/object/in":7}],33:[function(require,module,exports){
 var defaults = require("matchbox-util/object/defaults")
 var View = require("./View")
 var Selector = require("../dom/Selector")
@@ -1042,7 +1266,7 @@ var Region = module.exports = View.extend({
   }
 })
 
-},{"../dom/Selector":12,"./InstanceExtension":26,"./View":30,"matchbox-util/object/defaults":5}],29:[function(require,module,exports){
+},{"../dom/Selector":16,"./InstanceExtension":31,"./View":35,"matchbox-util/object/defaults":4}],34:[function(require,module,exports){
 var defaults = require("matchbox-util/object/defaults")
 var View = require("./View")
 var Region = require("./Region")
@@ -1079,12 +1303,13 @@ var Screen = module.exports = View.extend({
   }
 })
 
-},{"../dom/Selector":12,"../factory/inherit":22,"./InstanceExtension":26,"./Region":28,"./View":30,"matchbox-util/object/defaults":5}],30:[function(require,module,exports){
+},{"../dom/Selector":16,"../factory/inherit":27,"./InstanceExtension":31,"./Region":33,"./View":35,"matchbox-util/object/defaults":4}],35:[function(require,module,exports){
 var define = require("matchbox-util/object/define")
 var defaults = require("matchbox-util/object/defaults")
 var factory = require("../factory")
 var Event = require("./Event")
-var Attribute = require("../dom/DomAttribute")
+var attributes = require("../attributes")
+var domAttributes = require("../dom/attributes")
 var PrototypeExtension = require("./PrototypeExtension")
 var InstanceExtension = require("./InstanceExtension")
 var CacheExtension = require("./CacheExtension")
@@ -1106,17 +1331,14 @@ var View = module.exports = factory({
       event.register(view.element, this)
     }),
     attributes: new PrototypeExtension(function (prototype, name, attribute) {
-      if (!(attribute instanceof Attribute)) {
-        attribute = new Attribute(attribute)
+      if (!(attribute instanceof attributes.Attribute)) {
+        attribute = domAttributes.create(attribute)
       }
 
-      define.accessor(prototype, name, getter, setter)
-      function getter () {
-        return attribute.get(this.element)
-      }
-      function setter (value) {
-        return attribute.set(this.element, value)
-      }
+      attribute.name = attribute.name || name
+      attribute.defineProperty(prototype, name, function (view) {
+        return view.element
+      })
     })
   },
 
@@ -1182,7 +1404,7 @@ var View = module.exports = factory({
   }
 })
 
-},{"../dom/DomAttribute":10,"../factory":21,"./CacheExtension":23,"./Event":25,"./InstanceExtension":26,"./PrototypeExtension":27,"matchbox-util/object/defaults":5,"matchbox-util/object/define":6}],31:[function(require,module,exports){
+},{"../attributes":14,"../dom/attributes":17,"../factory":26,"./CacheExtension":28,"./Event":30,"./InstanceExtension":31,"./PrototypeExtension":32,"matchbox-util/object/defaults":4,"matchbox-util/object/define":5}],36:[function(require,module,exports){
 var ui = module.exports = {}
 
 ui.Screen = require("./Screen")
@@ -1190,112 +1412,5 @@ ui.Region = require("./Region")
 ui.Element = require("./Element")
 ui.View = require("./View")
 
-},{"./Element":24,"./Region":28,"./Screen":29,"./View":30}],32:[function(require,module,exports){
-var camelcase = require("camelcase")
-
-module.exports = Attribute
-
-function Attribute( def ){
-  var typeOfDef = typeof def
-  var type
-  var defaultValue
-  var hasDefault
-
-  switch( typeOfDef ){
-    // primitive value
-    case "boolean":
-    case "number":
-    case "string":
-      type = typeOfDef
-      defaultValue = def
-      hasDefault = true
-      def = {}
-      break
-    // definition object
-    case "object":
-    case "undefined":
-    default:
-      def = def || {}
-      defaultValue = def["default"]
-      hasDefault = defaultValue != null
-
-      if( typeof def["type"] == "undefined" ){
-        type = hasDefault ? typeof defaultValue : "string";
-      }
-      else {
-        type = def["type"]
-      }
-  }
-
-  var shouldRemove = function( value ){ return value == null }
-  var parseValue
-  var stringifyValue
-
-  switch( type ){
-    case "boolean":
-      shouldRemove = function( value ){ return value === false }
-      parseValue = function( value ){ return value != null }
-      stringifyValue = function(){ return "" }
-      break
-    case "number":
-      parseValue = function( value ){ return value == null ? null : parseInt(value, 10) }
-      break
-    case "float":
-      parseValue = function( value ){ return value == null ? null : parseFloat(value) }
-      break
-    case "string":
-    default:
-      stringifyValue = function( value ){ return value == null ? null : value ? "" + value : "" }
-  }
-
-  this.type = type
-  this.defaultValue = defaultValue
-  this.shouldRemove = shouldRemove
-  this.hasDefault = hasDefault
-  this.parseValue = parseValue
-  this.stringifyValue = stringifyValue
-  this.name = def["name"]
-  this.getter = def["get"]
-  this.setter = def["set"]
-  this.onchange = def["onchange"]
-}
-
-Attribute.prototype.getAttribute = function( context, name ){}
-Attribute.prototype.setAttribute = function( context, name, value ){}
-Attribute.prototype.hasAttribute = function( context, name ){}
-Attribute.prototype.removeAttribute = function( context, name ){}
-
-Attribute.prototype.get = function( context, useDefault ){
-  if( this.getter ){
-    return this.getter.call(context)
-  }
-
-  var value = this.getAttribute(context, this.name)
-  if( value == null && useDefault == true ){
-    return this.defaultValue
-  }
-  return this.parseValue ? this.parseValue(value) : value
-}
-
-Attribute.prototype.set = function( context, value, callOnchange ){
-  if( this.setter ){
-    this.setter.call(context)
-    return
-  }
-
-  var old = this.get(context, false)
-  if( this.shouldRemove(value) ){
-    this.removeAttribute(context, this.name)
-  }
-  else if( old === value ){
-    return
-  }
-  else {
-    var newValue = this.stringifyValue ? this.stringifyValue(value) : value
-    this.setAttribute(context, this.name, newValue)
-  }
-  this.onchange && callOnchange != false && this.onchange.call(context, old, value)
-}
-
-},{"camelcase":2}]},{},[1])(1)
+},{"./Element":29,"./Region":33,"./Screen":34,"./View":35}]},{},[1])(1)
 });

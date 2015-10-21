@@ -2,7 +2,8 @@ var define = require("matchbox-util/object/define")
 var defaults = require("matchbox-util/object/defaults")
 var factory = require("../factory")
 var Event = require("./Event")
-var Attribute = require("../dom/DomAttribute")
+var attributes = require("../attributes")
+var domAttributes = require("../dom/attributes")
 var PrototypeExtension = require("./PrototypeExtension")
 var InstanceExtension = require("./InstanceExtension")
 var CacheExtension = require("./CacheExtension")
@@ -24,17 +25,14 @@ var View = module.exports = factory({
       event.register(view.element, this)
     }),
     attributes: new PrototypeExtension(function (prototype, name, attribute) {
-      if (!(attribute instanceof Attribute)) {
-        attribute = new Attribute(attribute)
+      if (!(attribute instanceof attributes.Attribute)) {
+        attribute = domAttributes.create(attribute)
       }
 
-      define.accessor(prototype, name, getter, setter)
-      function getter () {
-        return attribute.get(this.element)
-      }
-      function setter (value) {
-        return attribute.set(this.element, value)
-      }
+      attribute.name = attribute.name || name
+      attribute.defineProperty(prototype, name, function (view) {
+        return view.element
+      })
     })
   },
 
