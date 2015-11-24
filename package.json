@@ -3,25 +3,11 @@
   "version": "1.0.0",
   "description": "Strike anywhere!",
   "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
+  "directories": {},
   "dependencies": {
-    "camelcase": "^1.2.1",
-    "matchbox-internals": "^0.2.0",
-    "matchbox-util": "^0.4.1"
   },
-  "devDependencies": {
-    "browserify": "^11.2.0",
-    "chai": "^3.3.0",
-    "mocha": "^2.3.3"
-  },
-  "scripts": {
-    "test": "test",
-    "build-standalone": "browserify index.js --standalone matchbox -o matchbox.js",
-    "build-debug": "browserify index.js --standalone matchbox --debug -o matchbox.debug.js",
-    "build": "npm run build-standalone && npm run build-debug"
-  },
+  "devDependencies": {},
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/matchboxjs/matchbox.git"
