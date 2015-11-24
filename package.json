@@ -5,6 +5,12 @@
   "main": "index.js",
   "directories": {},
   "dependencies": {
+    "matchbox-dom": "^0.6.3",
+    "matchbox-factory": "^0.2.0",
+    "matchbox-radio": "^1.0.0",
+    "matchbox-relay": "^0.3.0",
+    "matchbox-ui": "^0.4.0",
+    "matchbox-util": "^0.4.1"
   },
   "devDependencies": {},
   "scripts": {},
