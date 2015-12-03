@@ -9,7 +9,7 @@
     "matchbox-factory": "^0.2.0",
     "matchbox-radio": "^1.0.0",
     "matchbox-relay": "^0.3.0",
-    "matchbox-ui": "^0.6.0",
+    "matchbox-ui": "^0.7.0",
     "matchbox-util": "^0.4.1"
   },
   "devDependencies": {},
