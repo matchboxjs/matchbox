@@ -1,22 +1,20 @@
 {
   "name": "matchbox",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "description": "Strike anywhere!",
   "main": "index.js",
-  "directories": {},
+  "bin": {
+    "matchbox": "bin/index.js"
+  },
   "dependencies": {
-    "matchbox-dom": "^0.6.3",
-    "matchbox-factory": "^0.2.0",
-    "matchbox-radio": "^1.0.0",
-    "matchbox-relay": "^0.3.0",
-    "matchbox-ui": "^0.7.0",
-    "matchbox-util": "^0.4.1"
+    "commander": "^2.9.0",
+    "hideout": "^0.6.0"
   },
   "devDependencies": {},
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "https://github.com/matchboxjs/matchbox.git"
+    "url": "git+https://github.com/matchboxjs/matchbox.git"
   },
   "keywords": [
     "matchbox"

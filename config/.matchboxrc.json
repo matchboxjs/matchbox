@@ -1,0 +1,14 @@
+{
+  "name": "",
+  "root": "",
+  "dirs": {
+    "generators": "generators",
+    "tasks": "tasks",
+    "ui": "ui",
+    "libs": "libs",
+    "utils": "utils",
+    "polyfills": "polyfills"
+  },
+  "generators": {},
+  "init": {}
+}
