@@ -7,13 +7,14 @@ var cli = hideout.cli
 var assign = hideout.transforms.cli.assign
 
 module.exports = function init(packageName) {
+  // init a package
   if (packageName) {
     return config.context(packageName)
       .then(function(contexts) {
-        var initialize = Object.keys(contexts.package.init)
-        return hideout.flow.parallel(initialize, function(dir) {
-          return hideout.flow.series(contexts.package.init[dir], function(dirPath) {
-            var dest = config.resolveHostPath(contexts.host.dirs[dir], dirPath)
+        var initialize = Object.keys(contexts.package.dirs)
+        return hideout.flow.parallel(initialize, function(ns) {
+          return hideout.flow.series(contexts.package.dirs[ns], function(dirPath) {
+            var dest = config.resolveHostPath(contexts.host.namespace[ns], dirPath)
             return hideout.fs.makeDir(dest).then(function() {
               logger.ok(path.relative(cwd, dest))
             })
@@ -22,84 +23,107 @@ module.exports = function init(packageName) {
       })
       .catch(logger.stack)
   }
-  return config.fallback().then(function(settings) {
-    cli
-      .session("Main properties", settings)
-      .then(function(vars) {
-        return cli
-          .ask("name", path.basename(cwd))
-          .then(assign(vars, "name"))
-      })
-      .then(function(settings) {
-        return cli
-          .ask("root", settings.root)
-          .then(assign(settings, "root"))
-      })
-      .then(function(settings) {
-        return cli
-          .checkbox("Select directories to generate", Object.keys(settings.dirs))
-          .then(function(selection) {
-            return selection.reduce(function(obj, dir) {
-              obj[dir] = settings.dirs[dir]
-              return obj
-            }, {})
-          })
-          .then(assign(settings, "dirs"))
-      })
 
-      .then(function(settings) {
-        var dirNames = Object.keys(settings.dirs)
-        if (!dirNames.length) {
-          return settings
-        }
+  // init host config
+  return config
+    .default()
+    .then(function(defaultRc) {
+      return {default: defaultRc, host: null}
+    })
+    .then(function(context) {
+      return config.fallback()
+        .then(function(rc) {
+          context.host = rc
+          return context
+        })
+    })
+    .then(function(context) {
+      cli
+        // Main properties
+        .session("Main properties", context.host)
+        .then(function(host) {
+          return cli
+            .ask("name", path.basename(cwd))
+            .then(assign(host, "name"))
+        })
+        .then(function(host) {
+          return cli
+            .ask("root", host.root)
+            .then(assign(host, "root"))
+        })
 
-        return cli
-          .session("Set directory mapping", settings.dirs)
-          .then(function(dirs) {
-            return hideout.flow.series(Object.keys(dirs), function(dir) {
-              return cli
-                .ask(dir, path.join(settings.root, dirs[dir]))
-                .then(assign(dirs, dir))
+        // Select namespaces
+        .then(function(host) {
+          return cli
+            .checkbox("Select namespaces to generate", Object.keys(context.default.namespace))
+            .then(function(selection) {
+              return selection.reduce(function(namespaces, ns) {
+                namespaces[ns] = host.namespace[ns]
+                return namespaces
+              }, host.namespace || {})
             })
-          })
-          .then(assign(settings, "dirs"))
-      })
-
-      .then(function(settings) {
-        return hideout.fs.makeDir(config.resolveHostPath(settings.root || cwd)).then(function() {
-          logger.ok(logger.format.label("directory:", "root"))
-          return settings
+            .then(assign(host, "namespace"))
         })
-      })
 
-      .then(function(settings) {
-        return hideout.flow.series(Object.keys(settings.dirs), function(dir) {
-          var target = settings.dirs[dir]
+        // Namespace mappings
+        .then(function(host) {
+          var dirNames = Object.keys(host.namespace)
+          if (!dirNames.length) {
+            return host
+          }
 
-          return hideout.fs.makeDir(config.resolveHostPath(target)).then(function() {
-            logger.ok(logger.format.label("namespace:", dir))
-          })
-        }).then(function() {
-          return settings
+          return cli
+            .session("Set namespace-directory mapping", host.namespace)
+            .then(function(namespaces) {
+              return hideout.flow.series(Object.keys(namespaces), function(ns) {
+                return cli
+                  .ask(ns, namespaces[ns] || path.join(host.root, context.default.namespace[ns]))
+                  .then(assign(namespaces, ns))
+              })
+            })
+            .then(assign(host, "namespace"))
         })
-      })
 
-      .then(function(settings) {
-        var userConfigPath = config.getConfigPath(cwd)
-        var configContent = JSON.stringify(settings, null, 2)
-        logger.log(logger.format.title("Config file"))
-        logger.log(logger.format.comment(configContent))
-        return cli
-          .confirm("Write this to " + userConfigPath)
-          .then(function(yes) {
-            if (yes) {
-              return hideout.fs.write(userConfigPath, configContent)
-            }
+        // Directory creation
+
+        // root dir
+        .then(function(host) {
+          return hideout.fs.makeDir(config.resolveHostPath(host.root || cwd)).then(function() {
+            logger.ok(logger.format.label("directory:", "root"))
+            return host
           })
-      })
-      .then(function() {
-        logger.ok("All Done!")
-      })
-      .catch(logger.stack)
-  })
+        })
+        // selected namespaces
+        .then(function(host) {
+          return hideout.flow.series(Object.keys(host.namespace), function(dir) {
+            var target = host.namespace[dir]
+
+            return hideout.fs.makeDir(config.resolveHostPath(target)).then(function() {
+              logger.ok(logger.format.label("namespace:", dir))
+            })
+          }).then(function() {
+            return host
+          })
+        })
+
+        // rc file creation
+        .then(function(host) {
+          var userConfigPath = config.getConfigPath(cwd)
+          var configContent = JSON.stringify(host, null, 2)
+          logger.log(logger.format.title("Config file"))
+          logger.log(logger.format.comment(configContent))
+          return cli
+            .confirm("Write this to " + userConfigPath)
+            .then(function(yes) {
+              if (yes) {
+                return hideout.fs.write(userConfigPath, configContent)
+              }
+            })
+        })
+
+        .then(function() {
+          logger.ok("All Done!")
+        })
+        .catch(logger.stack)
+    })
 }

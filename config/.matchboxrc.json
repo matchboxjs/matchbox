@@ -1,7 +1,7 @@
 {
   "name": "",
   "root": "",
-  "dirs": {
+  "namespace": {
     "generators": "generators",
     "tasks": "tasks",
     "ui": "ui",
@@ -10,5 +10,5 @@
     "polyfills": "polyfills"
   },
   "generators": {},
-  "init": {}
+  "dirs": {}
 }

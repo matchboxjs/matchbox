@@ -10,7 +10,9 @@ module.exports = function generate(template, target) {
   if (packageName == ".") {
     packageName = null
   }
-  config.context(packageName)
+
+  return config
+    .context(packageName)
     .then(function(contexts) {
       var generators = contexts.package.generators || {}
       var generator = generators[generatorName]
@@ -25,25 +27,43 @@ module.exports = function generate(template, target) {
         logger.error("No such generator '%s'", template)
         return
       }
-      if (generator.root && (!contexts.host.dirs || !contexts.host.dirs[generator.root])) {
-        logger.error("Missing target directory '%s'", generator.root)
+      if (generator.namespace && (!contexts.host.namespace || !contexts.host.namespace[generator.namespace])) {
+        logger.error("Missing target directory '%s'", generator.namespace)
         return
       }
 
       // src-dest paths
-      var destRoot = generator.root
-        ? path.join(contexts.host.dirs[generator.root], generator.dir)
+      var destRoot = generator.namespace
+        ? path.join(contexts.host.namespace[generator.namespace], generator.dir)
         : path.join(contexts.host.root, generator.dir)
       var srcPattern = packageName
-        ? config.resolvePackagePath(packageName, contexts.package.dirs.generators, generatorName, "**/*")
-        : config.resolveHostPath(contexts.package.dirs.generators, generatorName, "**/*")
+        ? config.resolvePackagePath(packageName, contexts.package.namespace.generators, generatorName, "**/*")
+        : config.resolveHostPath(contexts.package.namespace.generators, generatorName, "**/*")
       var destDir = config.resolveHostPath(destRoot, target)
+      var compiler
+
+      // generator template
+      if (generator.template) {
+        var templatePath = config.resolvePackagePath(packageName, contexts.package.namespace.generators, generatorName)
+
+        try {
+          compiler = require(templatePath)
+        }
+        catch (e) {
+          throw new Error("Template script not found at " + templatePath)
+        }
+
+        if (compiler && typeof compiler != "function") {
+          throw new Error("Template script must export a function, " + typeof compiler + " was given in " + templatePath)
+        }
+      }
 
       // select files to copy
-      return hideout.fs.src(srcPattern)
+      return hideout
+        .fs.src(srcPattern)
         .then(function(files) {
-          return hideout.cli
-            .checkbox("Select files to copy", files.map(function(file) {
+          return hideout
+            .cli.checkbox("Select files to copy", files.map(function(file) {
               // display only the base name for clarity
               return path.basename(file)
             }))
@@ -56,26 +76,63 @@ module.exports = function generate(template, target) {
               })
             })
         })
+
         // copy selected files from generator dir to host target
         .then(function(files) {
           var targetName = path.basename(target)
-          hideout.flow.parallel(files, function(file) {
+
+          return hideout.flow.parallel(files, function(file) {
             var destFile
+            var fileName
+
+            // rename dest file according to naming scheme
             switch (generator.naming) {
               case "append":
-                destFile = path.join(destDir, targetName + "." + path.basename(file))
+                fileName = targetName + "." + path.basename(file)
                 break
-              case "target":
-                destFile = path.join(destDir, targetName + path.extname(file))
+              case "rename":
+                fileName = targetName + path.extname(file)
                 break
-              case "keep":
               default:
-                destFile = path.join(destDir, path.basename(file))
+              case "keep":
+                fileName = path.basename(file)
                 break
             }
-            return hideout.fs.copy(file, destFile).then(function() {
-              logger.ok(path.relative(cwd, destFile))
-            })
+
+            destFile = path.join(destDir, path.basename(file))
+
+            // use template to render generator files
+            if (compiler) {
+              return hideout.fs.read(file)
+                .then(function(contents) {
+                  return compiler(contents, {
+                    src: path.basename(file),
+                    dest: fileName,
+                    name: targetName,
+                    dir: path.relative(cwd, path.dirname(destFile)),
+                    file: destFile,
+                    target: target,
+                    host: contexts.host
+                  })
+                })
+                .then(function(contents) {
+                  if (typeof contents != "string") {
+                    throw new Error("Template returned invalid type: " + typeof contents)
+                  }
+
+                  return hideout.fs.write(destFile, contents)
+                })
+                .then(function() {
+                  logger.ok(path.relative(cwd, destFile))
+                })
+            }
+
+            // or just copy them
+            return hideout
+              .fs.copy(file, destFile)
+              .then(function() {
+                logger.ok(path.relative(cwd, destFile))
+              })
           })
         })
         .then(function() {
@@ -83,7 +140,7 @@ module.exports = function generate(template, target) {
         })
     })
     .then(function(destDir) {
-      logger.label("Done!", destDir)
+      logger.ok(logger.format.label("Done!", destDir))
     })
     .catch(logger.stack)
 }
