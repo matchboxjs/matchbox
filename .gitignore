@@ -80,4 +80,3 @@ build/Release
 ### npm
 
 test/
-.travis.yml
