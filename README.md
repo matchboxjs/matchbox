@@ -1,6 +1,8 @@
 matchbox
 ========
 
+[![npm](https://img.shields.io/npm/v/matchbox.svg)](https://www.npmjs.com/package/matchbox)
+
 Strike anywhere!
 
 **NOTICE**
@@ -13,27 +15,29 @@ From `2.0.0` this module contains the [matchbox](https://github.com/matchboxjs) 
 
 ## Info
 
-Matchbox is a modular framework for building web apps.
+Matchbox is a modular front-end app framework.
 It's built from the ground up to be extensible, decoupled, and plug-and-play.
 
-It includes:
+The core contains a standardised directory structure (or namespaces).
+Other modules build on top of this and provide solutions for views, models and everything else.
 
- - a robust class factory as a base
- - a ui kit for views
- - a communication layer
+Some sub components include:
 
-You can also install all of the included packages as standalone modules.
+ - views
+ - model layer
+ - dom utilities
+ - browser utilities
+
+Sub modules can also be used standalone, since they don't depend on each other.
 
 ### How it's different
 
 Matchbox distingushes itself by providing solutions that work well together or isolated.
 It's not designed to be a typical MVC implementation.
 
-The architecture of the components is formed by everyday problems and years of experience; 
-they cater to the needs of a day-to-day web app developer. 
-It's not too opinionated so you won't feel your hands are tied, 
-but also well defined so you'll always know how things work and how to use them.
-No more getting lost in vendor code.
+This architecture born from everyday problems and years of experience.
+On the lowest level it only provides a frame for organizing code and bootstrapping, 
+but it's easily extensible by plugins.
 
 ### Work in progress
 
@@ -52,4 +56,4 @@ There's no style guide yet, and even the current source is inconsistent in some 
 
 ## Licence
 
-MIT; run with it!
+MIT
