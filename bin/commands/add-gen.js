@@ -10,7 +10,7 @@ module.exports = function(generatorName) {
   config()
     .then(function(host) {
       if (!host.namespace.generators) {
-        logger.error("'generators' namespace is missing. Create it with 'matchbox init'")
+        logger.warn("'generators' namespace is missing. Create it with 'matchbox init'")
         return
       }
 

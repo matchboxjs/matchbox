@@ -28,7 +28,7 @@ module.exports = function generate(template, target) {
         return
       }
       if (generator.namespace && (!contexts.host.namespace || !contexts.host.namespace[generator.namespace])) {
-        logger.error("Missing target directory '%s'", generator.namespace)
+        logger.error("Missing target namespace '%s'. Create it with 'matchbox init'", generator.namespace)
         return
       }
 
@@ -44,7 +44,9 @@ module.exports = function generate(template, target) {
 
       // generator template
       if (generator.template) {
-        var templatePath = config.resolvePackagePath(packageName, contexts.package.namespace.generators, generatorName)
+        var templatePath = packageName
+          ? config.resolvePackagePath(packageName, contexts.package.namespace.generators, generatorName)
+          : config.resolveHostPath(contexts.package.namespace.generators, generatorName)
 
         try {
           compiler = require(templatePath)
@@ -62,11 +64,17 @@ module.exports = function generate(template, target) {
       return hideout
         .fs.src(srcPattern)
         .then(function(files) {
+          var choices = files.map(function(file) {
+            // display only the base name for clarity
+            return path.basename(file)
+          })
+
+          if (!choices.length) {
+            return files
+          }
+
           return hideout
-            .cli.checkbox("Select files to copy", files.map(function(file) {
-              // display only the base name for clarity
-              return path.basename(file)
-            }))
+            .cli.checkbox("Select files to copy", choices)
             .then(function(selection) {
               return files.filter(function(file) {
                 return selection.some(function(selected) {
@@ -80,6 +88,10 @@ module.exports = function generate(template, target) {
         // copy selected files from generator dir to host target
         .then(function(files) {
           var targetName = path.basename(target)
+
+          if (!files.length) {
+            return hideout.fs.makeDir(destDir)
+          }
 
           return hideout.flow.parallel(files, function(file) {
             var destFile
@@ -140,7 +152,9 @@ module.exports = function generate(template, target) {
         })
     })
     .then(function(destDir) {
-      logger.ok(logger.format.label("Done!", destDir))
+      if (destDir) {
+        logger.ok(logger.format.label("Done!", destDir))
+      }
     })
     .catch(logger.stack)
 }
