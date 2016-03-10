@@ -6,13 +6,18 @@ var RC_FILE_NAME = ".matchboxrc"
 var RC_FILE_GLOB = RC_FILE_NAME + ".{json,ya?ml}"
 var RC_FILE_DEFAULT = RC_FILE_NAME + ".json"
 var LIBRARY_ROOT = path.join(__dirname, "../")
+var NAMESPACES = [
+  "generators",
+  "tasks",
+  "ui",
+  "libs",
+  "utils",
+  "polyfills"
+]
 
-/**
- * Read the user config file, but log an error if it doesn't exist
- * */
-module.exports = function() {
-  return readHostConfig()
-}
+module.exports = readHostConfig
+
+module.exports.namespaces = NAMESPACES
 
 /**
  * Read the user config, or the default if it doesn't exist yet
@@ -102,7 +107,7 @@ function resolveLibPath(somePath) {
 }
 
 /**
- * Read a config file from cwd
+ * Read the user config file, but log an error if it doesn't exist
  * */
 function readHostConfig() {
   return readConfig(path.join(cwd, RC_FILE_GLOB))

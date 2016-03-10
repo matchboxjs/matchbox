@@ -5,6 +5,7 @@ var config = require("../../src/config")
 var cwd = process.cwd()
 var cli = hideout.cli
 var assign = hideout.transforms.cli.assign
+var NAMESPACES = config.namespaces
 
 module.exports = function init(packageName) {
   // init a package
@@ -52,48 +53,39 @@ module.exports = function init(packageName) {
             .then(assign(host, "root"))
         })
 
-        // Select namespaces
+        // Namespaces
         .then(function(host) {
+          host.namespace = host.namespace || {}
+
+          // Select namespaces
           return cli
-            .checkbox("Select namespaces to generate", Object.keys(context.default.namespace))
+            .checkbox("Select namespaces to generate", NAMESPACES)
             .then(function(selection) {
-              return selection.reduce(function(namespaces, ns) {
-                namespaces[ns] = host.namespace[ns]
-                return namespaces
-              }, host.namespace || {})
-            })
-            .then(assign(host, "namespace"))
-        })
 
-        // Namespace mappings
-        .then(function(host) {
-          var dirNames = Object.keys(host.namespace)
-          if (!dirNames.length) {
-            return host
-          }
-
-          return cli
-            .session("Set namespace-directory mapping", host.namespace)
-            .then(function(namespaces) {
-              return hideout.flow.series(Object.keys(namespaces), function(ns) {
-                return cli
-                  .ask(ns, namespaces[ns] || path.join(host.root, context.default.namespace[ns]))
-                  .then(assign(namespaces, ns))
-              })
+              // Namespace mappings
+              return cli
+                .session("Set namespace-directory mapping", host.namespace)
+                .then(function(namespaces) {
+                  return hideout.flow.series(selection, function(ns) {
+                    return cli
+                      .ask(ns, namespaces[ns] || path.join(host.root, ns))
+                      .then(assign(namespaces, ns))
+                  })
+                })
+                .then(assign(host, "namespace"))
             })
-            .then(assign(host, "namespace"))
         })
 
         // Directory creation
 
-        // root dir
+        // create root dir
         .then(function(host) {
           return hideout.fs.makeDir(config.resolveHostPath(host.root || cwd)).then(function() {
             logger.ok(logger.format.label("directory:", "root"))
             return host
           })
         })
-        // selected namespaces
+        // create selected namespaces
         .then(function(host) {
           return hideout.flow.series(Object.keys(host.namespace), function(dir) {
             var target = host.namespace[dir]
@@ -106,7 +98,7 @@ module.exports = function init(packageName) {
           })
         })
 
-        // rc file creation
+        // create rc file
         .then(function(host) {
           var userConfigPath = config.getConfigPath(cwd)
           var configContent = JSON.stringify(host, null, 2)

@@ -1,14 +1,7 @@
 {
   "name": "",
   "root": "",
-  "namespace": {
-    "generators": "generators",
-    "tasks": "tasks",
-    "ui": "ui",
-    "libs": "libs",
-    "utils": "utils",
-    "polyfills": "polyfills"
-  },
+  "namespace": {},
   "generators": {},
   "dirs": {}
 }

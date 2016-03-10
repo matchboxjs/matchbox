@@ -2,6 +2,7 @@ var hideout = require("hideout")
 var cwd = process.cwd()
 var logger = hideout.util.logger
 var config = require("../../src/config")
+var NAMESPACES = config.namespaces
 var assign = hideout.transforms.cli.assign
 
 module.exports = function(generatorName) {
@@ -20,34 +21,30 @@ module.exports = function(generatorName) {
         return
       }
 
-      return config
-        .default()
-        .then(function(defaultRc) {
+      return hideout
+        .cli.session("Generator: " + generatorName, {
+          namespace: "",
+          dir: "",
+          naming: "keep",
+          template: false
+        })
+        // generator fields
+        .then(function(generator) {
           return hideout
-            .cli.session("Generator: " + generatorName, {
-              namespace: "",
-              dir: "",
-              naming: "keep",
-              template: false
+            .cli.select("Target namespace", NAMESPACES)
+            .then(assign(generator, "namespace"))
+            .then(function() {
+              return hideout.cli.ask("Target dir", "")
             })
-            // generator fields
-            .then(function(generator) {
-              return hideout
-                .cli.select("Target namespace", Object.keys(defaultRc.namespace))
-                .then(assign(generator, "namespace"))
-                .then(function() {
-                  return hideout.cli.ask("Target dir", "")
-                })
-                .then(assign(generator, "dir"))
-                .then(function() {
-                  return hideout.cli.select("Naming scheme", ["keep", "rename", "append"])
-                })
-                .then(assign(generator, "naming"))
-                .then(function() {
-                  return hideout.cli.confirm("Generate template?")
-                })
-                .then(assign(generator, "template"))
+            .then(assign(generator, "dir"))
+            .then(function() {
+              return hideout.cli.select("Naming scheme", ["keep", "rename", "append"])
             })
+            .then(assign(generator, "naming"))
+            .then(function() {
+              return hideout.cli.confirm("Generate template?")
+            })
+            .then(assign(generator, "template"))
         })
         // update rc file contents
         .then(function(generator) {
