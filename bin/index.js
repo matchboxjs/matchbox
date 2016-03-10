@@ -20,6 +20,13 @@ commander
   })
 
 commander
+  .command("add-gen <name>")
+  .description("create a generator")
+  .action(function(template, dest) {
+    require("./commands/add-gen").apply(null, arguments)
+  })
+
+commander
   .action(function(invalid) {
     console.warn("Invalid command '" + invalid + "'")
   })
