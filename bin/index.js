@@ -6,10 +6,17 @@ commander
   .version("0.1.0")
 
 commander
-  .command("init [package]")
+  .command("init")
   .description("initialize a config file")
   .action(function action() {
     require("./commands/init").apply(null, arguments)
+  })
+
+commander
+  .command("bootstrap [packages...]")
+  .description("bootstrap dirs from the project or a package")
+  .action(function action() {
+    require("./commands/bootstrap").apply(null, arguments)
   })
 
 commander

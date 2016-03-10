@@ -42,7 +42,9 @@ module.exports.default = function() {
  * */
 module.exports.package = readPackageConfig
 function readPackageConfig(packageName) {
-  return readConfig(getConfigPath(resolvePackagePath(packageName)))
+  return readConfig(getConfigPath(resolvePackagePath(packageName))).catch(function(e) {
+    throw new Error("Couldn't load config from package: " + packageName)
+  })
 }
 
 /**

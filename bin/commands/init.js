@@ -7,23 +7,7 @@ var cli = hideout.cli
 var assign = hideout.transforms.cli.assign
 var NAMESPACES = config.namespaces
 
-module.exports = function init(packageName) {
-  // init a package
-  if (packageName) {
-    return config.context(packageName)
-      .then(function(contexts) {
-        var initialize = Object.keys(contexts.package.dirs)
-        return hideout.flow.parallel(initialize, function(ns) {
-          return hideout.flow.series(contexts.package.dirs[ns], function(dirPath) {
-            var dest = config.resolveHostPath(contexts.host.namespace[ns], dirPath)
-            return hideout.fs.makeDir(dest).then(function() {
-              logger.ok(path.relative(cwd, dest))
-            })
-          })
-        })
-      })
-      .catch(logger.stack)
-  }
+module.exports = function init() {
 
   // init host config
   return config
