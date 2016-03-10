@@ -111,7 +111,7 @@ module.exports = function generate(template, target) {
                 break
             }
 
-            destFile = path.join(destDir, path.basename(file))
+            destFile = path.join(destDir, fileName)
 
             // use template to render generator files
             if (compiler) {
