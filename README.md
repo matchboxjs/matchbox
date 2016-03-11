@@ -6,54 +6,94 @@ matchbox
 
 Strike anywhere!
 
-**NOTICE**
-
-A big thanks for [sorribas](https://github.com/sorribas) for handing over the namespace for this project!
-If you're looking for the transaction and invoce utiliy for emails, 
-it is still available as the 1.0.2 release. Just `npm install matchbox@1.0.2` to get it.
-
-From `2.0.0` this module contains the [matchbox](https://github.com/matchboxjs) project.
-
 ## Info
 
-Matchbox is a modular front-end app framework.
-It's built from the ground up to be extensible, decoupled, and plug-and-play.
+Matchbox is a framework for building apps with web techonlogies.
+It's aim is to help manage fron-end code.
+It provides a cli tool for bootstrapping, a standardized directory structure to organise source files, and a config file that ties all this together.
 
-The core contains a standardised directory structure (or namespaces).
-Other modules build on top of this and provide solutions for views, models and everything else.
+Other modules built on top of it can provide solutions for views, models and everything else.
 
-Some sub components include:
+### [Docs](docs)
 
- - views
- - model layer
- - dom utilities
- - browser utilities
+  - [cli](docs/cli.md)
+  - [namespaces](docs/namespaces.md)
+  - [the-matchbox-config-file](docs/the-matchbox-config-file.md)
+  - [third-party-modules](docs/third-party-modules.md)
 
-Sub modules can also be used standalone, since they don't depend on each other.
+### CLI
 
-### How it's different
+```
+Usage: matchbox [options] [command]
 
-Matchbox distingushes itself by providing solutions that work well together or isolated.
-It's not designed to be a typical MVC implementation.
+  Commands:
 
-This architecture born from everyday problems and years of experience.
-On the lowest level it only provides a frame for organizing code and bootstrapping, 
-but it's easily extensible by plugins.
+    init                      initialize a config file
+    bootstrap [packages...]   bootstrap dirs from the project or a package
+    gen <generator> <target>  use a generator to populate a target directory
+    add-gen <name>            create a generator
 
-### Work in progress
+  Options:
 
-The library is very much work in progress. As of this README, you won't find a single documentation on any of the repos.
-There are tests for every one of them though, so if you're interested, start there!
+    -h, --help     output usage information
+    -V, --version  output the version number
 
-Everything is "coming soon" now, but stay tuned/get involved; 
-I wish to make this project something that hopefully a lot of us will enjoy using.
+```
+
+Read more about the cli in the [docs](docs/cli.md).
+
+### namespaces
+
+Running `matchbox init`, among other things, will generate you a directory structure.
+You can select which namespaces your project uses, so the ones that are not relevant won't cluter your project.
+
+The `root` may be the same as the project root, 
+but you can also use it to isolate front-end code from the rest of the code.
+
+Read more about namespaces in the [docs](docs/namespaces.md).
+
+```
+project
+  └───<root>
+    ├───generators
+    ├───tasks
+    ├───ui
+    ├───libs
+    ├───utils
+    └───polyfills
+```
+
+### config file
+
+`.matchboxrc.json`
+
+Running `matchbox init` will generate a config file in the `cwd`.
+The `namespace`, `root`, and `name` fields will be populated with the values you provided during the init process.
+
+Read more about the config file in the [docs](docs/the-matchbox-config-file.md).
+
+```json
+{
+  "name": "",
+  "root": "",
+  "namespace": {},
+  "generators": {},
+  "dirs": {}
+}
+```
 
 ## Contribution
 
-Feel free to send PRs to any of the matchbox repos here. 
-This one's an umbrella repository that will grow and shape with time.
+Feel free to send PRs to any of the matchbox repos here.
+Many of the repos contain eslint configs; follow them to maintain a consistend style.
 
-There's no style guide yet, and even the current source is inconsistent in some places, so be careful and use your best judgement until a style guide is in effect.
+**Credits**
+
+A big thanks for [sorribas](https://github.com/sorribas) for handing over the namespace for this project!
+If you're looking for the transaction and invoice utiliy for emails, 
+it is still available as the 1.0.2 release. Just `npm install matchbox@1.0.2` to get it.
+
+From `2.0.0` this module contains the [matchbox](https://github.com/matchboxjs) project.
 
 ## Licence
 
