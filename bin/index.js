@@ -20,8 +20,8 @@ commander
   })
 
 commander
-  .command("gen <template> <target>")
-  .description("generate a template into destination")
+  .command("gen <generator> <target>")
+  .description("use a generator to populate a target directory")
   .action(function(template, dest) {
     require("./commands/generate").apply(null, arguments)
   })
