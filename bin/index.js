@@ -4,6 +4,7 @@ var commander = require("commander")
 
 commander
   .version(require("../package.json").version)
+  .option("-v, --version", "alias for -V")
 
 commander
   .command("help")
@@ -41,7 +42,6 @@ commander
   })
 
 commander
-  .command("*")
   .action(function(invalid) {
     console.warn("Invalid command '" + invalid + "'")
   })
