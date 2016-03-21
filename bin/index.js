@@ -3,7 +3,14 @@
 var commander = require("commander")
 
 commander
-  .version("0.1.0")
+  .version(require("../package.json").version)
+
+commander
+  .command("help")
+  .description("display help")
+  .action(function() {
+    commander.outputHelp()
+  })
 
 commander
   .command("init")
@@ -34,8 +41,11 @@ commander
   })
 
 commander
+  .command("*")
   .action(function(invalid) {
     console.warn("Invalid command '" + invalid + "'")
   })
 
 commander.parse(process.argv)
+
+if (!commander.args.length) commander.help()
