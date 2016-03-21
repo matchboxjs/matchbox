@@ -58,7 +58,7 @@ project
 
 ## gen
 
-`matchbox <generator> <target>`
+`matchbox gen <generator> <target>`
 
 It uses the `generators` field from the config file and the `generators` namespace from the file system to populate a target directory with files.
 
@@ -77,6 +77,7 @@ The config file in the `cwd`:
     "view": {
       "namespace": "ui",
       "dir": "elements",
+      "dirs": ["themes"],
       "naming": "keep",
       "template": false
     }
@@ -91,6 +92,7 @@ project
   └───client
     ├───generators
     │ └───view
+    │   ├───themes
     │   ├───view.dust
     │   ├───view.styl
     │   └───view.js

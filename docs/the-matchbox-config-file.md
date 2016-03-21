@@ -69,9 +69,15 @@ Defines which namespace to use for the target.
 
 #### generator/dir
 
-**optional**
+**Optional**
 
 Defines a target dir in the namespace.
+
+#### generator/dirs
+
+**Optional**
+
+Define additional sub directories in an array to generate in the target.
 
 #### generator/naming
 
