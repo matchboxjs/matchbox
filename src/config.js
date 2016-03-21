@@ -17,6 +17,8 @@ var NAMESPACES = [
 
 module.exports = readHostConfig
 
+module.exports.RC_FILE_NAME = RC_FILE_NAME
+module.exports.RC_FILE_GLOB = RC_FILE_GLOB
 module.exports.namespaces = NAMESPACES
 
 /**

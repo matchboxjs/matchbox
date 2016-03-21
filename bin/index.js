@@ -28,6 +28,13 @@ commander
   })
 
 commander
+  .command("list")
+  .description("List installed matchbox modules")
+  .action(function() {
+    require("./commands/list").apply(null, arguments)
+  })
+
+commander
   .command("gen <generator> <target>")
   .description("use a generator to populate a target directory")
   .action(function(template, dest) {
