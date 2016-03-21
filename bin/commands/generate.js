@@ -34,12 +34,12 @@ module.exports = function generate(template, target) {
 
       // src-dest paths
       var destRoot = generator.namespace
-        ? path.join(contexts.host.namespace[generator.namespace], generator.dir)
-        : path.join(contexts.host.root, generator.dir)
+        ? path.join(contexts.host.namespace[generator.namespace], generator.dir || "")
+        : path.join(contexts.host.root, generator.dir || "")
       var srcPattern = packageName
         ? config.resolvePackagePath(packageName, contexts.package.namespace.generators, generatorName, "**/*")
         : config.resolveHostPath(contexts.package.namespace.generators, generatorName, "**/*")
-      var destDir = config.resolveHostPath(destRoot, target)
+      var destDir = config.resolveHostPath(destRoot, target, generator.nest || "")
       var compiler
 
       // generator template
@@ -147,13 +147,39 @@ module.exports = function generate(template, target) {
               })
           })
         })
+
+        // create sub dirs
+        .then(function() {
+          if (!Array.isArray(generator.dirs)) {
+            return
+          }
+
+          return hideout
+            .cli.checkbox("Select files to copy", generator.dirs)
+            .then(function(choices) {
+              return choices.map(function(dir) {
+                return path.join(destDir, dir)
+              })
+            })
+            .then(function(dirs) {
+              if (!dirs.length) {
+                return
+              }
+
+              return hideout.fs.makeDir(dirs).then(function() {
+                dirs.forEach(function(dir) {
+                  logger.ok(path.relative(cwd, dir))
+                })
+              })
+            })
+        })
         .then(function() {
           return destDir
         })
     })
     .then(function(destDir) {
       if (destDir) {
-        logger.ok(logger.format.label("Done!", destDir))
+        logger.ok("%s: %s", logger.format.label(template), logger.format.value(path.relative(cwd, destDir)))
       }
     })
     .catch(logger.stack)
