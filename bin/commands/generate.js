@@ -36,9 +36,10 @@ module.exports = function generate(template, target) {
       var destRoot = generator.namespace
         ? path.join(contexts.host.namespace[generator.namespace], generator.dir || "")
         : path.join(contexts.host.root, generator.dir || "")
-      var srcPattern = packageName
-        ? config.resolvePackagePath(packageName, contexts.package.namespace.generators, generatorName, "**/*")
-        : config.resolveHostPath(contexts.package.namespace.generators, generatorName, "**/*")
+      var genDir = packageName
+          ? config.resolvePackagePath(packageName, contexts.package.namespace.generators, generatorName)
+          : config.resolveHostPath(contexts.package.namespace.generators, generatorName)
+      var srcPattern = path.join(genDir, "**/*")
       var destDir = config.resolveHostPath(destRoot, target, generator.nest || "")
       var compiler
 
@@ -64,14 +65,15 @@ module.exports = function generate(template, target) {
       return hideout
         .fs.src(srcPattern)
         .then(function(files) {
+          if (!files.length) {
+            logger.warn("Empty generator: no files to chose from at %s", genDir)
+            return files
+          }
+
           var choices = files.map(function(file) {
             // display only the base name for clarity
             return path.basename(file)
           })
-
-          if (!choices.length) {
-            return files
-          }
 
           return hideout
             .cli.checkbox("Select files to copy", choices)
